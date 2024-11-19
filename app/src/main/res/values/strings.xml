@@ -2,4 +2,10 @@
     <string name="app_name">EcoChallenges</string>
     <string name="imagen_logo">EcoLogo</string>
     <string name="default_web_client_id">627034487766-a2ra0pg3p4jadfu72a23pubbtpr8hlgr.apps.googleusercontent.com</string>
+    <string name="reto">Reto 1</string>
+    <string name="completado">COMPLETADO</string>
+    <string name="_1_primer_reto">1. Primer reto</string>
+    <string name="_2_segundo_reto">2. Segundo reto</string>
+    <string name="_3_tercer_reto">3. Tercer reto</string>
+    <string name="reto_x">Reto X</string>
 </resources>
