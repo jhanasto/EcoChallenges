@@ -10,14 +10,18 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 
-@Suppress("SameParameterValue")
+@Suppress("SameParameterValue", "RemoveCurlyBracesFromTemplate")
 class RetoAdapter(
     private val retos: List<DocumentSnapshot>,
     private val context: Context
 ) : RecyclerView.Adapter<RetoAdapter.RetoViewHolder>() {
+
+    private val auth = FirebaseAuth.getInstance()
+    private val db = FirebaseFirestore.getInstance()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RetoViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.challenges_list, parent, false)
@@ -31,7 +35,24 @@ class RetoAdapter(
 
         holder.viewName.text = retoName
 
-        // Elimina la lógica de deshabilitar los retos basados en el estado de completado
+        // Obtener el userId desde Firebase Auth
+        val userId = auth.currentUser?.uid ?: return  // Salir si no hay usuario autenticado
+
+        // Verificar si el reto tiene la colección de usuarios, si no, crearla con "completado: false"
+        checkRetoCompletionStatus(userId, retoName) { isCompleted ->
+            // Deshabilitar el reto si el reto anterior no está completado
+            if (position > 0) {
+                val previousRetoName = "Reto ${position}" // Asumimos nombres "Reto 1", "Reto 2", etc.
+                checkRetoCompletionStatus(userId, previousRetoName) { previousRetoCompleted ->
+                    holder.itemView.isClickable = previousRetoCompleted
+                }
+            } else {
+                holder.itemView.isClickable = true // El primer reto siempre puede ser completado
+            }
+
+            // Si el reto está completado, el botón de "Completado" no debe ser presionado
+            holder.viewName.isEnabled = !isCompleted
+        }
 
         holder.itemView.setOnClickListener {
             val inflater = LayoutInflater.from(context)
@@ -49,7 +70,7 @@ class RetoAdapter(
             val reto3 = detalleView.findViewById<TextView>(R.id.tvReto3)
             reto3.text = "Reto 3: $campo3"
 
-            // Mostrar dialogo de detalles
+// Mostrar dialogo de detalles
             val builder = AlertDialog.Builder(context)
             builder.setView(detalleView)
             builder.setPositiveButton("Cerrar") { dialog, _ -> dialog.dismiss() }
@@ -57,32 +78,106 @@ class RetoAdapter(
             val alertDialog = builder.create()
 
             val btnCompletado = detalleView.findViewById<Button>(R.id.btnCompletado)
+            // Verificar si el reto está completado para cambiar el texto del botón
+            checkRetoCompletionStatus(userId, retoName) { isCompleted ->
+                if (isCompleted) {
+                    btnCompletado.text = "COMPLETADO" // Si el reto ya está completado
+
+                } else {
+                    btnCompletado.text = "COMPLETAR" // Si el reto no está completado
+                    btnCompletado.isEnabled = true // Habilitar el botón para completar el reto
+                }
+            }
+
             btnCompletado.setOnClickListener {
-                // Muestra un mensaje toast cuando se marca el reto como completado
-                Toast.makeText(context, "$retoName completado", Toast.LENGTH_SHORT).show()
+                // Comprobar si el reto ya fue completado
+                checkRetoCompletionStatus(userId, retoName) { isCompleted ->
+                    if (isCompleted) {
+                        // Si el reto ya está completado, mostrar un mensaje
+                        Toast.makeText(context, "Reto completado, Avance al siguiente", Toast.LENGTH_SHORT).show()
 
-                // Marcar el reto como completado en Firestore
-                updateRetoStatus(document.id, true)
+                        // Pasar al siguiente reto
+                        alertDialog.dismiss()
 
-                // Cierra el dialogo
-                alertDialog.dismiss()
+                        // Actualizar todos los siguientes retos de manera recursiva
+                        enableSubsequentRetos(userId, position)
+                    } else {
+                        // Si el reto no está completado, marcarlo como completado
+                        Toast.makeText(context, "$retoName completado", Toast.LENGTH_SHORT).show()
 
+                        // Marcar el reto como completado en Firestore
+                        updateRetoStatus(retoName, true, userId)
+
+                        // Cierra el dialogo
+                        alertDialog.dismiss()
+
+                        // Notificar que el reto fue completado y permitir interacciones con el siguiente reto
+                        notifyItemChanged(position)
+
+                        // Actualizar todos los siguientes retos de manera recursiva
+                        enableSubsequentRetos(userId, position)
+                    }
+                }
             }
 
             alertDialog.show()
         }
     }
 
-    private fun updateRetoStatus(retoId: String, isCompleted: Boolean) {
-        val retoRef = FirebaseFirestore.getInstance().collection("retos").document(retoId)
+    private fun checkRetoCompletionStatus(userId: String, retoName: String, callback: (Boolean) -> Unit) {
+        val retoRef = db.collection("retos")
+            .document(retoName)
+            .collection("usuarios")
+            .document(userId)
 
-        // Actualiza el estado del reto a completado
-        retoRef.update("completado", isCompleted)
+        retoRef.get().addOnSuccessListener { document ->
+            // Si no existe el documento, lo creamos con "completado = false"
+            if (!document.exists()) {
+                retoRef.set(mapOf("completado" to false))
+                    .addOnSuccessListener {
+                        callback(false) // Retornar que no está completado
+                    }
+                    .addOnFailureListener {
+                        callback(false)
+                    }
+            } else {
+                val isCompleted = document.getBoolean("completado") ?: false
+                callback(isCompleted)
+            }
+        }.addOnFailureListener {
+            callback(false)
+        }
+    }
+
+    private fun updateRetoStatus(retoId: String, isCompleted: Boolean, userId: String) {
+        val retoRef = db.collection("retos").document(retoId).collection("usuarios").document(userId)
+
+        // Crear o actualizar el documento del usuario en la subcolección 'usuarios'
+        retoRef.set(mapOf("completado" to isCompleted), com.google.firebase.firestore.SetOptions.merge())
+            .addOnSuccessListener {
+                Toast.makeText(context, "$retoId marcado como completado", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener {
+                Toast.makeText(context, "Error al marcar el reto como completado", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    // Actualiza los retos posteriores si el reto actual fue completado
+    private fun enableSubsequentRetos(userId: String, position: Int) {
+        for (i in position + 1 until itemCount) {
+            val nextRetoName = "Reto ${i + 1}"
+            checkRetoCompletionStatus(userId, nextRetoName) { nextRetoCompleted ->
+                if (!nextRetoCompleted) {
+                    // Si el reto siguiente NO se ha completado, habilitarlo
+                    notifyItemChanged(i)
+                }
+            }
+        }
     }
 
     override fun getItemCount(): Int = retos.size
 
     class RetoViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val viewName: TextView = itemView.findViewById(R.id.verReto)
-    }
+        }
 }
