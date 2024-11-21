@@ -14,7 +14,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 
-@Suppress("SameParameterValue", "RemoveCurlyBracesFromTemplate")
+@Suppress("SameParameterValue", "RemoveCurlyBracesFromTemplate",
+    "RemoveSingleExpressionStringTemplate"
+)
 class RetoAdapter(
     private val retos: List<DocumentSnapshot>,
     private val context: Context
@@ -30,7 +32,10 @@ class RetoAdapter(
 
     @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(holder: RetoViewHolder, position: Int) {
-        val document = retos[position]
+        val retosOrdenados = retos.sortedBy { document ->
+            document.id.substringAfterLast(" ").toIntOrNull()?:0
+            }
+        val document = retosOrdenados[position]
         val retoName = document.id
 
         holder.viewName.text = retoName
@@ -42,7 +47,7 @@ class RetoAdapter(
         checkRetoCompletionStatus(userId, retoName) { isCompleted ->
             // Deshabilitar el reto si el reto anterior no está completado
             if (position > 0) {
-                val previousRetoName = "Reto ${position}" // Asumimos nombres "Reto 1", "Reto 2", etc.
+                val previousRetoName = "DESAFÍO ${position}" // Asumimos nombres "Reto 1", "Reto 2", etc.
                 checkRetoCompletionStatus(userId, previousRetoName) { previousRetoCompleted ->
                     holder.itemView.isClickable = previousRetoCompleted
                 }
@@ -62,13 +67,13 @@ class RetoAdapter(
             val campo3 = document.getString("campo3") ?: "Sin datos"
 
             val titulo = detalleView.findViewById<TextView>(R.id.tvTituloReto)
-            titulo.text = "Detalles del $retoName"
+            titulo.text = "$retoName"
             val reto1 = detalleView.findViewById<TextView>(R.id.tvReto1)
-            reto1.text = "Reto 1: $campo1"
+            reto1.text = "RETO 1: $campo1"
             val reto2 = detalleView.findViewById<TextView>(R.id.tvReto2)
-            reto2.text = "Reto 2: $campo2"
+            reto2.text = "RETO 2: $campo2"
             val reto3 = detalleView.findViewById<TextView>(R.id.tvReto3)
-            reto3.text = "Reto 3: $campo3"
+            reto3.text = "RETO 3: $campo3"
 
 // Mostrar dialogo de detalles
             val builder = AlertDialog.Builder(context)
@@ -94,7 +99,7 @@ class RetoAdapter(
                 checkRetoCompletionStatus(userId, retoName) { isCompleted ->
                     if (isCompleted) {
                         // Si el reto ya está completado, mostrar un mensaje
-                        Toast.makeText(context, "Reto completado, Avance al siguiente", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "$retoName completado, avance al siguiente", Toast.LENGTH_SHORT).show()
 
                         // Pasar al siguiente reto
                         alertDialog.dismiss()
@@ -155,7 +160,6 @@ class RetoAdapter(
         // Crear o actualizar el documento del usuario en la subcolección 'usuarios'
         retoRef.set(mapOf("completado" to isCompleted), com.google.firebase.firestore.SetOptions.merge())
             .addOnSuccessListener {
-                Toast.makeText(context, "$retoId marcado como completado", Toast.LENGTH_SHORT).show()
             }
             .addOnFailureListener {
                 Toast.makeText(context, "Error al marcar el reto como completado", Toast.LENGTH_SHORT).show()
@@ -165,7 +169,7 @@ class RetoAdapter(
     // Actualiza los retos posteriores si el reto actual fue completado
     private fun enableSubsequentRetos(userId: String, position: Int) {
         for (i in position + 1 until itemCount) {
-            val nextRetoName = "Reto ${i + 1}"
+            val nextRetoName = "DESAFÍO ${i + 1}"
             checkRetoCompletionStatus(userId, nextRetoName) { nextRetoCompleted ->
                 if (!nextRetoCompleted) {
                     // Si el reto siguiente NO se ha completado, habilitarlo

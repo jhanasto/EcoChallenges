@@ -12,7 +12,6 @@
         android:padding="16dp"
         android:gravity="center">
 
-        <!-- Título del reto -->
         <TextView
             android:id="@+id/tvTituloReto"
             android:layout_width="wrap_content"
@@ -23,7 +22,6 @@
             android:layout_gravity="center_horizontal"
             android:textColor="@color/black" />
 
-        <!-- CardView para cada reto (con borde) -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -36,14 +34,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="12dp">
+                android:padding="20dp">
 
                 <TextView
                     android:id="@+id/tvReto1"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/_1_primer_reto"
-                    android:textSize="16sp"
+                    android:textSize="20sp"
+                    android:textStyle="bold|italic"
                     android:textColor="@color/black" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
@@ -60,14 +59,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="12dp">
+                android:padding="20dp">
 
                 <TextView
                     android:id="@+id/tvReto2"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/_2_segundo_reto"
-                    android:textSize="16sp"
+                    android:textSize="20sp"
+                    android:textStyle="bold|italic"
                     android:textColor="@color/black" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
@@ -84,14 +84,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="12dp">
+                android:padding="20dp">
 
                 <TextView
                     android:id="@+id/tvReto3"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/_3_tercer_reto"
-                    android:textSize="16sp"
+                    android:textSize="20sp"
+                    android:textStyle="bold|italic"
                     android:textColor="@color/black" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
@@ -99,12 +100,13 @@
         <!-- Botón para completar -->
         <Button
             android:id="@+id/btnCompletado"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="250dp"
+            android:layout_height="60dp"
             android:text="@string/completado"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="20dp"
             android:layout_gravity="center_horizontal"
             android:backgroundTint="@color/black"
+            android:textSize="20sp"
             android:textColor="@android:color/white" />
     </LinearLayout>
 </androidx.cardview.widget.CardView>
